@@ -2,7 +2,10 @@
 set -eu
 
 if [ "$#" -gt 0 ]; then
-    exec "$@"
+    case "$1" in
+        -*) exec /usr/local/bin/imapsync "$@" ;;
+        *) exec "$@" ;;
+    esac
 fi
 
 value_for() {
