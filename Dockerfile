@@ -44,6 +44,7 @@ RUN apt-get update \
         libunicode-string-perl \
         liburi-perl \
         libwww-perl \
+        procps \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 10001 imapsync
 
