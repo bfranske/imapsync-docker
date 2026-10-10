@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out image repository
+        uses: actions/checkout@v4
+
+      - name: Check out upstream imapsync
+        uses: actions/checkout@v4
+        with:
+          repository: imapsync/imapsync
+          ref: master
+          path: upstream
+          fetch-depth: 1
+
+      - name: Validate Compose configuration
+        run: docker compose --env-file .env.example config --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and load test image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: imapsync:test
+          build-args: |
+            IMAPSYNC_VERSION=ci
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+
+      - name: Smoke test image
+        run: docker run --rm imapsync:test --version
+
+      - name: Check missing configuration error
+        run: |
+          docker run --rm imapsync:test >/tmp/imapsync-entrypoint.out 2>&1 && exit 1 || true
+          grep -F 'Missing required environment variable: IMAPSYNC_HOST1' /tmp/imapsync-entrypoint.out

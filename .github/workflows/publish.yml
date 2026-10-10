@@ -1,0 +1,132 @@
+name: Publish imapsync image
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: "Upstream imapsync tag, for example imapsync-2.314"
+        required: false
+        type: string
+      publish_latest:
+        description: "Update the latest tag"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-imapsync
+  cancel-in-progress: false
+
+env:
+  IMAGE: bfranske/imapsync
+  PLATFORMS: linux/amd64,linux/arm64
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+      should_publish: ${{ steps.release.outputs.should_publish }}
+      publish_latest: ${{ steps.release.outputs.publish_latest }}
+    steps:
+      - name: Find the upstream release tag
+        id: release
+        env:
+          REQUESTED_TAG: ${{ inputs.upstream_tag }}
+          REQUESTED_LATEST: ${{ inputs.publish_latest }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$REQUESTED_TAG" ]; then
+            TAG="$REQUESTED_TAG"
+          else
+            TAG="$(git ls-remote --tags --refs https://github.com/imapsync/imapsync.git \
+              | awk -F/ '{ print $3 }' \
+              | awk '/^(imapsync-)?[0-9]+\.[0-9]+$/ { version = $0; sub(/^imapsync-/, "", version); print version, $0 }' \
+              | sort -V \
+              | tail -n 1 \
+              | awk '{ print $2 }')"
+          fi
+
+          VERSION="${TAG#imapsync-}"
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+$'; then
+            echo "Unsupported upstream tag: $TAG" >&2
+            exit 1
+          fi
+
+          if curl --fail --silent --show-error \
+              "https://hub.docker.com/v2/repositories/${IMAGE}/tags/${VERSION}" >/dev/null; then
+            SHOULD_PUBLISH=false
+          else
+            SHOULD_PUBLISH=true
+          fi
+
+          if [ "$REQUESTED_LATEST" = "false" ]; then
+            PUBLISH_LATEST=false
+          else
+            PUBLISH_LATEST=true
+          fi
+
+          {
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "should_publish=$SHOULD_PUBLISH"
+            echo "publish_latest=$PUBLISH_LATEST"
+          } >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: discover
+    if: needs.discover.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out image repository
+        uses: actions/checkout@v4
+
+      - name: Check out upstream imapsync
+        uses: actions/checkout@v4
+        with:
+          repository: imapsync/imapsync
+          ref: ${{ needs.discover.outputs.tag }}
+          path: upstream
+          fetch-depth: 1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push multi-platform image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ env.PLATFORMS }}
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ needs.discover.outputs.version }}
+            ${{ needs.discover.outputs.publish_latest == 'true' && format('{0}:latest', env.IMAGE) || '' }}
+          build-args: |
+            IMAPSYNC_VERSION=${{ needs.discover.outputs.version }}
+            VCS_REF=${{ needs.discover.outputs.tag }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify published manifest
+        run: |
+          docker buildx imagetools inspect "${IMAGE}:${{ needs.discover.outputs.version }}" \
+            | grep -F 'linux/amd64'
+          docker buildx imagetools inspect "${IMAGE}:${{ needs.discover.outputs.version }}" \
+            | grep -F 'linux/arm64'

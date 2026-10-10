@@ -1,0 +1,5 @@
+.env
+!.env.example
+!.env.advanced.example
+logs/
+upstream/
