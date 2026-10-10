@@ -58,7 +58,7 @@ make buildx-push TAG=2.314 UPSTREAM_TAG=imapsync-2.314
 
 ## Automated publishing
 
-[`.github/workflows/publish.yml`](.github/workflows/publish.yml) polls upstream tags once each day at `04:17 UTC`. It recognizes stable tags in either `imapsync-X.Y` or legacy `X.Y` form, skips a version already on Docker Hub, and publishes both:
+[`.github/workflows/publish.yml`](.github/workflows/publish.yml) polls upstream tags once each day at `04:17 UTC`. It recognizes stable tags in either `imapsync-X.Y` or legacy `X.Y` form. Scheduled runs skip versions already on Docker Hub; a manual dispatch or any push to `main` rebuilds and replaces the version and `latest` tags. It publishes both:
 
 ```text
 bfranske/imapsync:<version>

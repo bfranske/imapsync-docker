@@ -1,6 +1,9 @@
 name: Publish imapsync image
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: "17 4 * * *"
   workflow_dispatch:
@@ -40,6 +43,7 @@ jobs:
         env:
           REQUESTED_TAG: ${{ inputs.upstream_tag }}
           REQUESTED_LATEST: ${{ inputs.publish_latest }}
+          FORCE_PUBLISH: ${{ github.event_name != 'schedule' }}
         run: |
           set -euo pipefail
 
@@ -60,7 +64,9 @@ jobs:
             exit 1
           fi
 
-          if curl --fail --silent --show-error \
+          if [ "$FORCE_PUBLISH" = "true" ]; then
+            SHOULD_PUBLISH=true
+          elif curl --fail --silent --show-error \
               "https://hub.docker.com/v2/repositories/${IMAGE}/tags/${VERSION}" >/dev/null; then
             SHOULD_PUBLISH=false
           else
