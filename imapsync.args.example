@@ -1,0 +1,15 @@
+# One imapsync option or option value per line. Passwords belong in .env.
+--host1
+imap.source.example
+--port1
+993
+--user1
+source-user@example.com
+--ssl1
+--host2
+imap.destination.example
+--port2
+993
+--user2
+destination-user@example.com
+--ssl2

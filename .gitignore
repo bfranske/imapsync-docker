@@ -1,5 +1,7 @@
 .env
 !.env.example
-!.env.advanced.example
+imapsync.args
+!imapsync.args.example
+!imapsync.args.advanced.example
 logs/
 upstream/

@@ -44,7 +44,15 @@ jobs:
       - name: Smoke test image
         run: docker run --rm imapsync:test --version
 
-      - name: Check missing configuration error
+      - name: Smoke test argument file configuration
+        run: |
+          printf '%s\n' --version > imapsync.args
+          docker run --rm \
+            --mount type=bind,source="$PWD/imapsync.args",target=/config/imapsync.args,readonly \
+            -e IMAPSYNC_ARGS_FILE=/config/imapsync.args \
+            imapsync:test
+
+      - name: Check missing argument file error
         run: |
           docker run --rm imapsync:test >/tmp/imapsync-entrypoint.out 2>&1 && exit 1 || true
-          grep -F 'Missing required environment variable: IMAPSYNC_HOST1' /tmp/imapsync-entrypoint.out
+          grep -F 'IMAPSYNC_ARGS_FILE is required when no command is supplied.' /tmp/imapsync-entrypoint.out

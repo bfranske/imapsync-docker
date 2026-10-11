@@ -4,46 +4,46 @@ Multi-architecture, CLI-only container image for [imapsync](https://github.com/i
 
 ## Run a migration
 
-Copy the standard TLS example, set the source and destination credentials, then run the one-shot Compose service:
+Copy the password and standard TLS argument templates, edit both files, then run the one-shot Compose service:
 
 ```sh
 cp .env.example .env
-docker compose --env-file .env run --rm imapsync
+cp imapsync.args.example imapsync.args
+docker compose run --rm imapsync
 ```
 
-The container writes imapsync logs to `./logs`. The local `.env` file and logs are ignored by Git. For non-TLS servers and selected runtime options, start from `.env.advanced.example` instead.
+The container writes imapsync logs to `./logs`. Local `.env`, `imapsync.args`, and logs are ignored by Git. For non-TLS servers and selected runtime options, start from `imapsync.args.advanced.example` instead.
 
-The supported settings are:
+Passwords belong in `.env`:
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `IMAPSYNC_HOST1`, `IMAPSYNC_USER1`, `IMAPSYNC_PASSWORD1` | Yes | Source server and account |
-| `IMAPSYNC_HOST2`, `IMAPSYNC_USER2`, `IMAPSYNC_PASSWORD2` | Yes | Destination server and account |
-| `IMAPSYNC_PORT1`, `IMAPSYNC_PORT2` | No | IMAP ports; default `993` |
-| `IMAPSYNC_SSL1`, `IMAPSYNC_SSL2` | No | Set `true` for TLS; default `true` |
-| `IMAPSYNC_TIMEOUT1`, `IMAPSYNC_TIMEOUT2` | No | Per-server timeouts in seconds |
-| `IMAPSYNC_MAXAGE` | No | Copy only messages no older than this many days |
-| `IMAPSYNC_MAX_BYTES_PER_SECOND` | No | Maximum transfer rate |
-| `IMAPSYNC_MAX_MESSAGES_PER_SECOND` | No | Maximum message rate |
-| `IMAPSYNC_EXCLUDE` | No | Folder-selection pattern passed to `--exclude` |
-| `IMAPSYNC_DELETE2` | No | Set `true` to remove destination-only messages |
-| `IMAPSYNC_NOFOLDERSIZES` | No | Set `true` to skip folder-size calculations |
+| `IMAPSYNC_PASSWORD1` | Yes | Source mailbox password |
+| `IMAPSYNC_PASSWORD2` | Yes | Destination mailbox password |
 
-Passwords remain environment variables and are not constructed as command-line arguments by the entrypoint. Treat `.env` as a secret; use Docker secrets or your deployment platform's secret mechanism for production automation.
+`imapsync.args` contains one complete imapsync option or option value per line. Blank lines and lines beginning with `#` are ignored. All other lines, including values containing spaces, are passed literally as one imapsync argument. This supports every imapsync option without an entrypoint allowlist.
+
+Passwords remain environment variables and are not placed in the argument file or constructed as command-line arguments by the entrypoint. Treat `.env` as a secret; use Docker secrets or your deployment platform's secret mechanism for production automation.
 
 ## Direct Docker usage
 
-Docker accepts the same environment file without Compose:
+Docker accepts the same environment file and argument file without Compose:
 
 ```sh
-docker run --rm --env-file .env -v "$PWD/logs:/home/imapsync/logs" bfranske/imapsync:latest
+docker run --rm --env-file .env \
+	--mount type=bind,source="$PWD/imapsync.args",target=/config/imapsync.args,readonly \
+	-v "$PWD/logs:/home/imapsync/logs" \
+	-e IMAPSYNC_ARGS_FILE=/config/imapsync.args \
+	bfranske/imapsync:latest
 ```
 
-To invoke native imapsync arguments rather than the environment adapter, pass the command explicitly:
+For ad hoc use, pass native imapsync options directly; this bypasses the argument-file loader:
 
 ```sh
-docker run --rm bfranske/imapsync:latest imapsync --version
+docker run --rm bfranske/imapsync:latest --version
 ```
+
+An explicit command is also passed through unchanged, for example `docker run --rm bfranske/imapsync:latest imapsync --version`.
 
 ## Build locally
 

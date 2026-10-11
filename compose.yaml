@@ -3,24 +3,14 @@ services:
     image: ${IMAPSYNC_IMAGE:-bfranske/imapsync:latest}
     restart: "no"
     environment:
-      IMAPSYNC_HOST1: ${IMAPSYNC_HOST1:?Set IMAPSYNC_HOST1 in .env}
-      IMAPSYNC_PORT1: ${IMAPSYNC_PORT1:-993}
-      IMAPSYNC_USER1: ${IMAPSYNC_USER1:?Set IMAPSYNC_USER1 in .env}
       IMAPSYNC_PASSWORD1: ${IMAPSYNC_PASSWORD1:?Set IMAPSYNC_PASSWORD1 in .env}
-      IMAPSYNC_SSL1: ${IMAPSYNC_SSL1:-true}
-      IMAPSYNC_HOST2: ${IMAPSYNC_HOST2:?Set IMAPSYNC_HOST2 in .env}
-      IMAPSYNC_PORT2: ${IMAPSYNC_PORT2:-993}
-      IMAPSYNC_USER2: ${IMAPSYNC_USER2:?Set IMAPSYNC_USER2 in .env}
       IMAPSYNC_PASSWORD2: ${IMAPSYNC_PASSWORD2:?Set IMAPSYNC_PASSWORD2 in .env}
-      IMAPSYNC_SSL2: ${IMAPSYNC_SSL2:-true}
-      IMAPSYNC_TIMEOUT1: ${IMAPSYNC_TIMEOUT1:-}
-      IMAPSYNC_TIMEOUT2: ${IMAPSYNC_TIMEOUT2:-}
-      IMAPSYNC_LOGDIR: /home/imapsync/logs
-      IMAPSYNC_MAXAGE: ${IMAPSYNC_MAXAGE:-}
-      IMAPSYNC_MAX_BYTES_PER_SECOND: ${IMAPSYNC_MAX_BYTES_PER_SECOND:-}
-      IMAPSYNC_MAX_MESSAGES_PER_SECOND: ${IMAPSYNC_MAX_MESSAGES_PER_SECOND:-}
-      IMAPSYNC_EXCLUDE: ${IMAPSYNC_EXCLUDE:-}
-      IMAPSYNC_DELETE2: ${IMAPSYNC_DELETE2:-false}
-      IMAPSYNC_NOFOLDERSIZES: ${IMAPSYNC_NOFOLDERSIZES:-false}
+      IMAPSYNC_ARGS_FILE: /config/imapsync.args
     volumes:
+      - type: bind
+        source: ./imapsync.args
+        target: /config/imapsync.args
+        read_only: true
+        bind:
+          create_host_path: false
       - ./logs:/home/imapsync/logs

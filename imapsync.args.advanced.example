@@ -1,0 +1,21 @@
+# Plaintext IMAP example with selected migration controls.
+--host1
+imap.source.example
+--port1
+143
+--user1
+source-user@example.com
+--nossl1
+--timeout1
+180
+--host2
+imap.destination.example
+--port2
+143
+--user2
+destination-user@example.com
+--nossl2
+--timeout2
+180
+--delete2
+--nofoldersizes

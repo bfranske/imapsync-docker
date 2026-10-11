@@ -1,7 +1,7 @@
 .git
 .github
 .env
+imapsync.args
 logs
 README.md
 Makefile
-*** End Patch
