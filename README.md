@@ -2,6 +2,8 @@
 
 Multi-architecture, CLI-only container image for [imapsync](https://github.com/imapsync/imapsync). Published images support `linux/amd64` and `linux/arm64`.
 
+Images are published at https://hub.docker.com/r/bfranske/imapsync
+
 ## Run a migration
 
 Copy the password and standard TLS argument templates, edit both files, then run the one-shot Compose service:
@@ -64,14 +66,5 @@ make buildx-push TAG=2.314 UPSTREAM_TAG=imapsync-2.314
 bfranske/imapsync:<version>
 bfranske/imapsync:latest
 ```
-
-Set these repository Actions secrets before enabling publication:
-
-| Secret | Value |
-| --- | --- |
-| `DOCKERHUB_USERNAME` | `bfranske` |
-| `DOCKERHUB_TOKEN` | Docker Hub personal access token with read/write access to `bfranske/imapsync` |
-
-Use **Actions > Publish imapsync image > Run workflow** with a known `upstream_tag` for the first release. The workflow builds one manifest only after both target architectures complete successfully. Its final manifest inspection verifies both `linux/amd64` and `linux/arm64` were published.
 
 The CI workflow validates Compose rendering, builds a native image, runs `--version`, and checks the entrypoint's missing-configuration error. It does not perform a live mailbox synchronization.
